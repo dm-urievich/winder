@@ -10,11 +10,11 @@ void initMotor(void);
 void initButtons(void);
 void initLeds();
 
-#define KEY_DIRECTION PINB6
-#define KEY_DOWN PINB4
-#define KEY_MENU PINB3
-#define KEY_SPEED PINB0
-#define KEY_START_STOP PINB5
+#define KEY_DIRECTION PINB0
+#define KEY_DOWN PINB5
+#define KEY_MENU PINB6
+#define KEY_SPEED PINB3
+#define KEY_START_STOP PINB4
 #define KEY_UP PINB7
 
 struct Buttons {
@@ -51,6 +51,7 @@ struct Encoder {
     unsigned a:1;
     unsigned b:1;
 	volatile uint8_t timer;
+    uint8_t k;
 };
 
 extern struct Encoder encoder;
@@ -77,6 +78,12 @@ enum State {
     START,
     WINDING,
     ACCEL
+};
+
+enum ToInd {
+    VALUE,
+    SPEED,
+    COEF
 };
 
 extern uint8_t adcValue;

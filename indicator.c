@@ -102,7 +102,7 @@ void view_ind(void)
         {
             blinkMenu.state = blinkMenu.state ? 0 : 1;
 
-            blinkMenu.timer = 12;
+            blinkMenu.timer = 30;
         }
         else
         {
@@ -110,7 +110,7 @@ void view_ind(void)
         }
     }
 
-    if (blinkMenu.state || blinkMenu.catode == 0)
+    if ((numofseg != (blinkMenu.catode - 1)) || blinkMenu.state || blinkMenu.catode == 0)
     {
         switch (numofseg) {
         case 0 :

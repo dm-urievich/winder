@@ -66,10 +66,17 @@
 #include <avr/io.h>
 #include <avr/iom8.h>
 #include <avr/interrupt.h>
+#include <avr/eeprom.h>
 
 volatile uint8_t timer;
 
 uint8_t adcValue;
+
+uint8_t* EEPROM_SPEED  = (uint8_t*)0;
+uint8_t* EEPROM_VAL_1  = (uint8_t*)1;
+uint8_t* EEPROM_VAL_2  = (uint8_t*)2;
+uint8_t* EEPROM_K      = (uint8_t*)3;
+uint8_t* EEPROM_DIR    = (uint8_t*)4;
 
 struct Buttons buttons;
 struct Encoder encoder;
@@ -80,6 +87,11 @@ struct BlinkMenu blinkMenu;
 
 int main()
 {
+    uint8_t ledBlink = 0;
+    uint8_t toInd = VALUE;
+    uint16_t compValue = 0;
+    uint16_t encoderInd = 0;
+
     initADC();
     initEncoder();
     initDisplay();
@@ -92,8 +104,17 @@ int main()
     TIMSK |= (1 << TOIE0);	// прерывания от таймеров
 
     // вычитать данные из еепром
-    motor.direction = 0;
-    motor.speed = 0;
+    motor.direction = eeprom_read_byte(EEPROM_DIR);
+    motor.speed = eeprom_read_byte(EEPROM_SPEED);
+
+    encoder.endValue = eeprom_read_byte(EEPROM_VAL_1);
+    encoder.endValue |= eeprom_read_byte(EEPROM_VAL_2) << 8;
+
+    if (encoder.endValue > 9999) {
+        encoder.endValue = 0;
+    }
+
+    encoder.k = eeprom_read_byte(EEPROM_K);
 
     blinkMenu.timer = 0;
     blinkMenu.catode = 0;
@@ -124,15 +145,18 @@ int main()
 		if (!encoder.timer)
 		{
 			encoder.timer = 5;
-
 		}
 
 		readADC();
+
+        encoderInd = encoder.counter / encoder.k;
 
         switch (state)
         {
         case READY:
         {
+            ledOff();
+
             // установка скорости и количества витков
             if (buttons.menu)
             {
@@ -150,15 +174,18 @@ int main()
             {
                 blinkMenu.catode = 0;
 
-                if (blinkMenu.isSpeed)
-                {
-                    blinkMenu.isSpeed = 0;
-                    blinkMenu.dot = 1;
+                if (buttons.menu) {
+                    toInd = COEF;
                 }
-                else
-                {
-                    blinkMenu.isSpeed = 1;
-                    blinkMenu.dot = 2;
+                else {
+                    if (blinkMenu.isSpeed) {
+                        blinkMenu.isSpeed = 0;
+                        toInd = VALUE;
+                    }
+                    else {
+                        blinkMenu.isSpeed = 1;
+                        toInd = SPEED;
+                    }
                 }
             }
 
@@ -168,13 +195,24 @@ int main()
                 uint8_t seg[4];
                 uint8_t i;
 
-                if (blinkMenu.isSpeed)
-                {
-                    tmp = motor.speed;
-                }
-                else
+                switch (toInd) {
+                case VALUE:
                 {
                     tmp = encoder.endValue;
+                    break;
+                }
+                case SPEED:
+                {
+                    tmp = motor.speed;
+                    break;
+                }
+                case COEF:
+                {
+                    tmp = encoder.k;
+                    break;
+                }
+                default:
+                    break;
                 }
 
                 // узнаем количество тисяч
@@ -215,7 +253,14 @@ int main()
 
                 tmp = seg[0] + seg[1] * 10 + seg[2] * 100 + seg[3] * 1000;
 
-                if (blinkMenu.isSpeed)
+
+                switch (toInd) {
+                case VALUE:
+                {
+                    encoder.endValue = tmp;
+                    break;
+                }
+                case SPEED:
                 {
                     if (tmp > 100)
                     {
@@ -223,20 +268,39 @@ int main()
                     }
 
                     motor.speed = tmp;
+                    break;
                 }
-                else
+                case COEF:
                 {
-                    encoder.endValue = tmp;
+                    encoder.k = tmp;
+                    break;
+                }
+                default:
+                    break;
                 }
             }
 
-            if (blinkMenu.isSpeed)
-            {
-                inttoind(motor.speed);
-            }
-            else
+            switch (toInd) {
+            case VALUE:
             {
                 inttoind(encoder.endValue);
+                blinkMenu.dot = 1;
+                break;
+            }
+            case SPEED:
+            {
+                inttoind(motor.speed);
+                blinkMenu.dot = 2;
+                break;
+            }
+            case COEF:
+            {
+                inttoind(encoder.k);
+                blinkMenu.dot = 3;
+                break;
+            }
+            default:
+                break;
             }
 
 
@@ -244,7 +308,6 @@ int main()
         }
         case START:
         {
-
             if (buttons.direction)
             {
                 motor.direction ^= 1;
@@ -261,14 +324,46 @@ int main()
 
             if (buttons.start_stop)
             {
+                if (state == READY) {       // save config
+                    eeprom_write_byte(EEPROM_DIR, motor.direction);
+                    eeprom_write_byte(EEPROM_SPEED, motor.speed);
+
+                    eeprom_write_byte(EEPROM_K, encoder.k);
+
+                    eeprom_write_byte(EEPROM_VAL_1, encoder.endValue & 0xFF);
+                    eeprom_write_byte(EEPROM_VAL_2, encoder.endValue >> 8);
+
+                    encoder.counter = 0;
+
+                    compValue = encoder.endValue * encoder.k;
+                }
+
                 state = WINDING;
 
-                setSpeed(motor.speed + 27);
+                ledOn();
+
+                toInd = VALUE;
+                blinkMenu.catode = 0;
+                blinkMenu.dot = 0;
+                blinkMenu.isSpeed = 0;
+
+                if (motor.speed != 0) {
+                    setSpeed(motor.speed + 27);
+                }
             }
 
             if (state == START)
             {
-                inttoind(encoder.counter / 2);
+                // тут мигать светодиодом
+                if (ledBlink == 200) {
+                    ledBlink = 0;
+                    PORTD ^= (1 << PORTD7);
+                }
+                else {
+                    ledBlink++;
+                }
+
+                inttoind(encoderInd);
             }
 
             break;
@@ -283,7 +378,7 @@ int main()
                 setSpeed(speed);
             }
 
-            if (encoder.counter / 2 >= encoder.endValue)
+            if (encoder.counter >= compValue)
             {
                 state = READY;
 
@@ -297,7 +392,7 @@ int main()
                 setSpeed(0);
             }
 
-            inttoind(encoder.counter / 2);
+            inttoind(encoderInd);
 
             break;
         }
@@ -362,7 +457,6 @@ void initEncoder()
     GICR |= (1 << INT0);
 }
 
-
 // инициализация портов и структур
 void initDisplay()
 {
@@ -378,7 +472,6 @@ void initDisplay()
 
     PORTC |= (1 << PORTC2);     // пока /CLR всегда 1
 }
-
 
 // инициализация ШИМ и пинов которые для мотора
 void initMotor()
@@ -520,5 +613,12 @@ ISR (TIMER0_OVF_vect)
 
 ISR(INT0_vect)
 {
-    encoder.counter++;
+    if (PIND & (1 << PIND3)) {
+        encoder.counter++;
+    }
+    else {
+        if (encoder.counter) {
+            encoder.counter--;
+        }
+    }
 }
