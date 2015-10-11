@@ -9,8 +9,7 @@ void testDisplay()
     uint16_t n = 0;
     uint8_t a, b, c, d;
 
-    if (sec == 200)
-    {
+    if (sec == 200) {
         a = num;
         b = (num + 1) % 10;
         c = (num + 2) % 10;
@@ -19,19 +18,14 @@ void testDisplay()
         n = a * 1000 + b * 100 + c * 10 + d;
         inttoind(n);
 
-        if (num == 9)
-        {
+        if (num == 9) {
             num = 0;
-        }
-        else
-        {
+        } else {
             num++;
         }
 
         sec = 0;
-    }
-    else
-    {
+    } else {
         sec++;
     }
 }
@@ -63,52 +57,40 @@ void testButtons()
 
 void testMotor()
 {
-	setSpeed(127);	
+    setSpeed(127);
 
-    if (sec == 1000)
-    {
-        if (num)
-        {
+    if (sec == 1000) {
+        if (num) {
             rotateLeft();
-   
+
             num = 0;
-        }
-        else
-        {
+        } else {
             rotateRight();
 
             num = 1;
         }
 
         sec = 0;
-    }
-    else
-    {
+    } else {
         sec++;
     }
 }
 
 void testLeds()
 {
-    if (sec == 200)
-    {
-        if (num)
-        {
+    if (sec == 200) {
+        if (num) {
             ledOn();
 
             num = 0;
-        }
-        else
-        {
+        } else {
             ledOff();
 
             num = 1;
         }
 
         sec = 0;
-    }
-    else
-    {
+    } else {
         sec++;
     }
 }
@@ -120,12 +102,12 @@ void testEncoder()
 
 void testADC()
 {
-	inttoind(adcValue);
-}	
+    inttoind(adcValue);
+}
 
 void testAdcMotor()
 {
-	rotateLeft();
-	setSpeed(adcValue);
-	inttoind(adcValue);
+    rotateLeft();
+    setSpeed(adcValue);
+    inttoind(adcValue);
 }

@@ -122,12 +122,9 @@ int main()
 
     setSpeed(0);
 
-    if (motor.direction)
-    {
+    if (motor.direction) {
         rotateLeft();
-    }
-    else
-    {
+    } else {
         rotateRight();
     }
 
@@ -135,79 +132,63 @@ int main()
 
     sei();
 
-    for(;;)
-    {
-        if (!buttons.timer)
-        {
+    for(;;) {
+        if (!buttons.timer) {
             readButtons();
         }
 
-		if (!encoder.timer)
-		{
-			encoder.timer = 5;
-		}
+        if (!encoder.timer) {
+            encoder.timer = 5;
+        }
 
-		readADC();
+        readADC();
 
         encoderInd = encoder.counter / encoder.k;
 
-        switch (state)
-        {
-        case READY:
-        {
+        switch (state) {
+        case READY: {
             ledOff();
 
             // установка скорости и количества витков
-            if (buttons.menu)
-            {
-                if (blinkMenu.catode == 4)
-                {
+            if (buttons.menu) {
+                if (blinkMenu.catode == 4) {
                     blinkMenu.catode = 0;
-                }
-                else
-                {
+                } else {
                     blinkMenu.catode++;
                 }
             }
 
-            if (buttons.speed)
-            {
+            if (buttons.speed) {
                 blinkMenu.catode = 0;
 
                 if (buttons.menu) {
                     toInd = COEF;
-                }
-                else {
+                } else {
                     if (blinkMenu.isSpeed) {
                         blinkMenu.isSpeed = 0;
                         toInd = VALUE;
-                    }
-                    else {
+                    } else {
                         blinkMenu.isSpeed = 1;
                         toInd = SPEED;
                     }
                 }
             }
 
-            if (blinkMenu.catode && (buttons.up || buttons.down))
-            {
+            if (blinkMenu.catode && (buttons.up || buttons.down)) {
                 uint16_t tmp;
                 uint8_t seg[4];
                 uint8_t i;
 
                 switch (toInd) {
-                case VALUE:
-                {
+                case VALUE: {
                     tmp = encoder.endValue;
                     break;
                 }
-                case SPEED:
-                {
+                case SPEED: {
                     tmp = motor.speed;
                     break;
                 }
-                case COEF:
-                {
+                case COEF: {
                     tmp = encoder.k;
                     break;
                 }
@@ -233,19 +214,13 @@ int main()
                 // единицы сразу переносим
                 seg[0] = tmp;
 
-                if (buttons.up)
-                {
-                    if (seg[blinkMenu.catode - 1] < 9)
-                    {
+                if (buttons.up) {
+                    if (seg[blinkMenu.catode - 1] < 9) {
                         seg[blinkMenu.catode - 1]++;
                     }
-                }
-                else
-                {
-                    if (buttons.down)
-                    {
-                        if (seg[blinkMenu.catode - 1] > 0)
-                        {
+                } else {
+                    if (buttons.down) {
+                        if (seg[blinkMenu.catode - 1] > 0) {
                             seg[blinkMenu.catode - 1]--;
                         }
                     }
@@ -255,23 +230,19 @@ int main()
 
 
                 switch (toInd) {
-                case VALUE:
-                {
+                case VALUE: {
                     encoder.endValue = tmp;
                     break;
                 }
-                case SPEED:
-                {
-                    if (tmp > 100)
-                    {
+                case SPEED: {
+                    if (tmp > 100) {
                         tmp = 100;
                     }
 
                     motor.speed = tmp;
                     break;
                 }
-                case COEF:
-                {
+                case COEF: {
                     encoder.k = tmp;
                     break;
                 }
@@ -281,20 +252,17 @@ int main()
             }
 
             switch (toInd) {
-            case VALUE:
-            {
+            case VALUE: {
                 inttoind(encoder.endValue);
                 blinkMenu.dot = 1;
                 break;
             }
-            case SPEED:
-            {
+            case SPEED: {
                 inttoind(motor.speed);
                 blinkMenu.dot = 2;
                 break;
             }
-            case COEF:
-            {
+            case COEF: {
                 inttoind(encoder.k);
                 blinkMenu.dot = 3;
                 break;
@@ -303,27 +271,20 @@ int main()
                 break;
             }
 
-
-            //break; он здесь не нужен!! чтобы не повторять функционал
+            //break; он здесь не нужен, чтобы не повторять функционал
         }
-        case START:
-        {
-            if (buttons.direction)
-            {
+        case START: {
+            if (buttons.direction) {
                 motor.direction ^= 1;
 
-                if (motor.direction)
-                {
+                if (motor.direction) {
                     rotateLeft();
-                }
-                else
-                {
+                } else {
                     rotateRight();
                 }
             }
 
-            if (buttons.start_stop)
-            {
+            if (buttons.start_stop) {
                 if (state == READY) {       // save config
                     eeprom_write_byte(EEPROM_DIR, motor.direction);
                     eeprom_write_byte(EEPROM_SPEED, motor.speed);
@@ -348,45 +309,43 @@ int main()
                 blinkMenu.isSpeed = 0;
 
                 if (motor.speed != 0) {
-                    setSpeed(motor.speed + 27);
+                    setSpeed(motor.speed + 27); // потому что максимум что задаем это 100 %, дальше сдвиг на 1 и надо получить 255, если задали 1 то не страшно
                 }
             }
 
-            if (state == START)
-            {
+            if (state == START) {
                 // тут мигать светодиодом
                 if (ledBlink == 200) {
                     ledBlink = 0;
                     PORTD ^= (1 << PORTD7);
-                }
-                else {
+                } else {
                     ledBlink++;
                 }
 
                 inttoind(encoderInd);
+
+                // не проверенное условие, могут быть баги
+                if (buttons.menu) {
+                    state = READY;
+                }
             }
 
             break;
         }
-        case WINDING:
-        {
-            if (motor.speed == 0)
-            {
-                uint8_t speed = adcValue;
+        case WINDING: {
+            if (motor.speed == 0) {
+                uint8_t speed = adcValue >> 1;
 
-                speed = speed >> 1;
                 setSpeed(speed);
             }
 
-            if (encoder.counter >= compValue)
-            {
+            if (encoder.counter >= compValue) {
                 state = READY;
 
                 setSpeed(0);
             }
 
-            if (buttons.start_stop)
-            {
+            if (buttons.start_stop) {
                 state = START;
 
                 setSpeed(0);
@@ -396,13 +355,10 @@ int main()
 
             break;
         }
-        case ACCEL:
-        {
-
+        case ACCEL: {
             break;
         }
-        default :
-        {
+        default : {
             break;
         }
         }
@@ -414,8 +370,7 @@ int main()
         buttons.speed = 0;
         buttons.up = 0;
 
-        if (timer)
-        {
+        if (timer) {
 //            testDisplay();
 //            testButtons();
 //            testLeds();
@@ -432,7 +387,6 @@ int main()
     return 0;
 }
 
-
 // АЦП, нулевой канал, выравнивание влево, берем только старшие биты
 void initADC()
 {
@@ -444,7 +398,7 @@ void initADC()
 
 void readADC()
 {
-	adcValue = ADCH;
+    adcValue = ADCH;
 }
 
 // энкодер будет по прерыванию
@@ -608,15 +562,14 @@ ISR (TIMER0_OVF_vect)
 
     buttons.timer--;
 
-	encoder.timer--;
+    encoder.timer--;
 }
 
 ISR(INT0_vect)
 {
     if (PIND & (1 << PIND3)) {
         encoder.counter++;
-    }
-    else {
+    } else {
         if (encoder.counter) {
             encoder.counter--;
         }
