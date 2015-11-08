@@ -81,7 +81,8 @@ enum State {
 };
 
 enum ToInd {
-    VALUE,
+    ENCODER,
+    END_VALUE,
     SPEED,
     COEF
 };
@@ -89,6 +90,9 @@ enum ToInd {
 extern uint8_t adcValue;
 
 void inttoind(uint16_t n);
+
+void saveToEEPROM();
+void editSettings();
 
 void ledOn();
 void ledOff();
