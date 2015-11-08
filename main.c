@@ -286,13 +286,13 @@ int main()
 
             if (buttons.start_stop) {
                 if (state == READY) {       // save config
-                    eeprom_write_byte(EEPROM_DIR, motor.direction);
-                    eeprom_write_byte(EEPROM_SPEED, motor.speed);
+                    eeprom_update_byte(EEPROM_DIR, motor.direction);
+                    eeprom_update_byte(EEPROM_SPEED, motor.speed);
 
-                    eeprom_write_byte(EEPROM_K, encoder.k);
+                    eeprom_update_byte(EEPROM_K, encoder.k);
 
-                    eeprom_write_byte(EEPROM_VAL_1, encoder.endValue & 0xFF);
-                    eeprom_write_byte(EEPROM_VAL_2, encoder.endValue >> 8);
+                    eeprom_update_byte(EEPROM_VAL_1, encoder.endValue & 0xFF);
+                    eeprom_update_byte(EEPROM_VAL_2, encoder.endValue >> 8);
 
                     encoder.counter = 0;
 

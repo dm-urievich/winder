@@ -8,7 +8,6 @@ SOURCES += main.c \
     libs/encoder/encoder.c \
     libs/IND_Driver/indicator.c \
     libs/IND_Driver/spi.c \
-    main_charger.c \
     indicator.c \
     periphery.c \
     test.c
